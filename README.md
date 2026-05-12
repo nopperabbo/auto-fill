@@ -4,23 +4,37 @@ Five ways to auto-fill payment forms (Stripe Elements, Stripe Checkout, plain HT
 
 All methods share one core engine (`core/autofill-engine.js`) that uses proven patterns from production autofill tools (refined-github, Automa, Firefox iOS, Bitwarden, Stripe e2e suites).
 
-## Setup
+## Quick start (30 seconds)
 
 ```sh
-git clone <this-repo>
+git clone https://github.com/nopperabbo/auto-fill.git
 cd auto-fill
-cp profiles.example.json profiles.json
-# Edit profiles.json with your real card and billing info
+./setup.sh                                          # installs deps + generates profiles.json
+./autofill https://your-site.test/checkout --submit # fill + submit, done
 ```
 
-Or generate 10 realistic US profiles in one shot:
+`setup.sh` handles Python venv, Node deps, Playwright Chromium, and generates 10 US profiles with Stripe test cards. `autofill` wrapper auto-picks Node or Python backend.
+
+## Other install methods
+
+<details>
+<summary>Manual profile setup</summary>
 
 ```sh
-cd python
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python gen-profiles.py --out ../profiles.json
+cp profiles.example.json profiles.json   # start from example
+# or
+cd python && source .venv/bin/activate
+python gen-profiles.py --out ../profiles.json   # generate 10 US entries
 ```
+
+</details>
+
+<details>
+<summary>Chrome extension / Tampermonkey / Bookmarklet</summary>
+
+See [TUTORIAL.md](TUTORIAL.md) Step 3 for each method.
+
+</details>
 
 `profiles.json` is `.gitignore`d — never commit real card data.
 

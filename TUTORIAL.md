@@ -6,6 +6,23 @@ Panduan pemakaian dari nol sampe jalan. Ikuti dari atas ke bawah, pilih salah sa
 
 ---
 
+## ⚡ Opsi super-cepat (one-shot)
+
+Kalau lu mau langsung jalan tanpa baca semua step ini:
+
+```sh
+git clone https://github.com/nopperabbo/auto-fill.git
+cd auto-fill
+./setup.sh                                        # auto-install semua deps + generate profiles
+./autofill https://your-site.test/checkout --submit
+```
+
+`setup.sh` install Python venv + pip deps + Playwright Chromium + Node deps + generate `profiles.json` (10 US profile). `autofill` wrapper auto-pick Node kalau ada, fallback ke Python.
+
+Kalau mau customize (metode lain, manual profile, dll), lanjut ke Step 1.
+
+---
+
 ## Step 1 — Clone repo
 
 ```sh

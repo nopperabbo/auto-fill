@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# autofill — zero-friction runner. Usage: ./autofill <url> [flags]
+#
+# Auto-detects installed CLI (Node preferred, Python fallback). First run hints
+# to run ./setup.sh if deps are missing.
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+ROOT="$(pwd)"
+
+if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  cat <<USAGE
+autofill — fill payment forms with one command
+
+Usage:
+  ./autofill <url> [--profile <key>] [--submit] [--headful] [--wait <ms>] [--channel chrome]
+
+Examples:
+  ./autofill https://example.com/checkout
+  ./autofill https://example.com/checkout --submit
+  ./autofill https://example.com/checkout --profile us_05 --headful
+
+First time? Run: ./setup.sh
+USAGE
+  exit 0
+fi
+
+# Check setup ran
+if [ ! -f profiles.json ]; then
+  echo "✗ profiles.json not found. Run: ./setup.sh" >&2
+  exit 1
+fi
+
+# Prefer Node CLI (matches the one the test fixtures were verified on).
+# Fall back to Python if Node isn't available.
+if command -v node >/dev/null 2>&1 && [ -d "$ROOT/playwright/node_modules" ]; then
+  exec node "$ROOT/playwright/autofill.js" --url "$@"
+elif [ -d "$ROOT/python/.venv" ]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/python/.venv/bin/activate"
+  exec python "$ROOT/python/autofill.py" --url "$@"
+else
+  echo "✗ No CLI ready. Run: ./setup.sh" >&2
+  exit 1
+fi
