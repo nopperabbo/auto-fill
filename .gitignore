@@ -10,6 +10,14 @@ profiles.json
 node_modules/
 yarn.lock
 
+# Python
+python/.venv/
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+
 # Generated build artifacts
 dist/
 bookmarklet/dist/

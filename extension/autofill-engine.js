@@ -156,23 +156,28 @@
       'input[autocomplete="email"]',
       'input[type="email"]',
       'input[name="email"]',
+      'input[name="billingEmail"]',
       'input[id*="email" i]'
     ],
     phone: [
       'input[autocomplete="tel"]',
       'input[type="tel"]',
       'input[name="phone"]',
+      'input[name="billingPhone"]',
       'input[id*="phone" i]'
     ],
     country: [
       'select[autocomplete="country"]',
+      'select[autocomplete="billing country"]',
       'select[name="country"]',
       'select[name="billingCountry"]',
       'input[autocomplete="country"]',
+      'input[autocomplete="billing country"]',
       'input[name="country"]'
     ],
     line1: [
       'input[autocomplete="address-line1"]',
+      'input[autocomplete="billing address-line1"]',
       'input[name="address-line1"]',
       'input[name="addressLine1"]',
       'input[name="address1"]',
@@ -183,37 +188,46 @@
     ],
     line2: [
       'input[autocomplete="address-line2"]',
+      'input[autocomplete="billing address-line2"]',
       'input[name="address-line2"]',
       'input[name="addressLine2"]',
       'input[name="address2"]',
+      'input[name="billingAddressLine2"]',
       'input[aria-label*="address line 2" i]'
     ],
     city: [
       'input[autocomplete="address-level2"]',
+      'input[autocomplete="billing address-level2"]',
       'input[name="city"]',
       'input[name="locality"]',
       'input[name="billingCity"]',
+      'input[name="billingLocality"]',
       'input[aria-label*="city" i]'
     ],
     state: [
       'input[autocomplete="address-level1"]',
+      'input[autocomplete="billing address-level1"]',
       'select[autocomplete="address-level1"]',
+      'select[autocomplete="billing address-level1"]',
       'input[name="state"]',
       'input[name="province"]',
       'input[name="region"]',
       'select[name="state"]',
       'select[name="province"]',
+      'select[name="billingAdministrativeArea"]',
       'input[aria-label*="province" i]',
       'input[aria-label*="state" i]'
     ],
     postalCode: [
       'input[data-elements-stable-field-name="postalCode"]',
       'input[autocomplete="postal-code"]',
+      'input[autocomplete="billing postal-code"]',
       'input[name="postal"]',
       'input[name="postalCode"]',
       'input[name="postal_code"]',
       'input[name="postcode"]',
       'input[name="zip"]',
+      'input[name="billingPostalCode"]',
       'input[aria-label*="postal" i]',
       'input[aria-label*="zip" i]'
     ]

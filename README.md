@@ -1,8 +1,8 @@
 # Auto Fill — Payment Forms
 
-Four ways to auto-fill payment forms (Stripe Elements, Stripe Checkout, plain HTML, React) from a local JSON profile.
+Five ways to auto-fill payment forms (Stripe Elements, Stripe Checkout, plain HTML, React) from a local JSON profile.
 
-All methods share one core engine (`core/autofill-engine.js`) that uses proven patterns from production autofill tools (refined-github, Automa, Firefox iOS, Stripe e2e suites).
+All methods share one core engine (`core/autofill-engine.js`) that uses proven patterns from production autofill tools (refined-github, Automa, Firefox iOS, Bitwarden, Stripe e2e suites).
 
 ## Setup
 
@@ -13,7 +13,18 @@ cp profiles.example.json profiles.json
 # Edit profiles.json with your real card and billing info
 ```
 
+Or generate 10 realistic US profiles in one shot:
+
+```sh
+cd python
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python gen-profiles.py --out ../profiles.json
+```
+
 `profiles.json` is `.gitignore`d — never commit real card data.
+
+**Full install + usage tutorial per method: see [USAGE.md](USAGE.md).**
 
 ## Profile shape
 
@@ -51,9 +62,11 @@ Fields are all optional — engine only fills what matches. `expYear` accepts `"
 
 ---
 
-## 1. Playwright CLI (most reliable — works on everything)
+## 1. Playwright CLI (Node or Python — most reliable)
 
-Fills top-frame AND Stripe iframes by bypassing same-origin via CDP.
+Fills top-frame AND Stripe iframes by bypassing same-origin via CDP. Same behavior in both languages — pick whichever stack you prefer.
+
+### Node
 
 ```sh
 cd playwright
@@ -63,7 +76,20 @@ npx playwright install chromium
 node autofill.js --url https://example.com/checkout --profile personal --submit
 ```
 
-Flags:
+### Python
+
+```sh
+cd python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m playwright install chromium
+
+python autofill.py --url https://example.com/checkout --profile personal --submit
+```
+
+Flags (same for both):
+
 - `--url <url>`            target page (required)
 - `--profile <key>`        profile key (default: `defaultProfile` in JSON)
 - `--submit`               click the pay/submit button after filling
@@ -71,19 +97,24 @@ Flags:
 - `--channel chrome`       use installed Chrome instead of bundled Chromium
 - `--wait <ms>`            delay after page load before filling (default 3000)
 
-## 2. Chrome / Edge extension
+## 2. Chrome / Edge extension — simplest daily driver
 
-Fills top-frame AND all iframes via `all_frames: true` content script.
+Fills top-frame AND all iframes via `all_frames: true` content script. Four ways to trigger:
+
+1. **Floating "Fill" button** appears automatically when a payment form is detected on the page — one click fills, "+ Submit" variant also submits.
+2. **Keyboard shortcut** `Ctrl+Shift+F` (Cmd on macOS) fills with default profile. `Ctrl+Shift+X` fills and submits.
+3. **Right-click menu** on any page: `Auto Fill → Fill — <profile>` lists all saved profiles.
+4. **Popup** (puzzle-piece icon or `Ctrl+Shift+Y`) for explicit profile selection + inline JSON editor.
+
+### Install
 
 ```
 chrome://extensions → Developer mode → Load unpacked → select ./extension
 ```
 
-Click the puzzle-piece → pin **Auto Fill** → click icon on any checkout page.
+Click the puzzle-piece → pin **Auto Fill**. Edit profiles in the popup: **Edit profiles JSON** → paste → **Save**. Shortcuts can be customized at `chrome://extensions/shortcuts`.
 
-Edit profiles in the popup: **Edit profiles JSON** → paste → **Save**.
-
-## 3. Tampermonkey userscript
+## 4. Tampermonkey userscript
 
 Auto-injects into top-frame AND Stripe iframes (via explicit `@match https://js.stripe.com/*`).
 
@@ -92,7 +123,7 @@ Auto-injects into top-frame AND Stripe iframes (via explicit `@match https://js.
 3. On any payment page: Tampermonkey icon → `Fill — <profile>` or `Fill + Submit — <profile>`.
 4. Edit profiles: Tampermonkey icon → `Edit profiles (JSON)`.
 
-## 4. Bookmarklet (simplest, but limited)
+## 5. Bookmarklet (simplest, but limited)
 
 Works on plain HTML and same-origin React forms. **Cannot fill Stripe iframes** (cross-origin sandbox).
 
@@ -107,12 +138,13 @@ Drag the buttons onto your bookmarks bar. Click on any payment page to fill.
 
 ## Delivery method matrix
 
-|                         | Plain HTML | React (same-origin) | Stripe Elements iframe | Stripe Checkout page |
-|-------------------------|------------|---------------------|------------------------|----------------------|
-| Playwright CLI          | ✅          | ✅                   | ✅                      | ✅                    |
-| Chrome extension        | ✅          | ✅                   | ✅                      | ✅                    |
-| Tampermonkey userscript | ✅          | ✅                   | ✅                      | ✅                    |
-| Bookmarklet             | ✅          | ✅                   | ❌ (same-origin policy) | ✅ (top-frame)        |
+|                          | Plain HTML | React (same-origin) | Stripe Elements iframe | Stripe Checkout page |
+|--------------------------|------------|---------------------|------------------------|----------------------|
+| Playwright CLI (Node)    | ✅          | ✅                   | ✅                      | ✅                    |
+| Playwright CLI (Python)  | ✅          | ✅                   | ✅                      | ✅                    |
+| Chrome extension         | ✅          | ✅                   | ✅                      | ✅                    |
+| Tampermonkey userscript  | ✅          | ✅                   | ✅                      | ✅                    |
+| Bookmarklet              | ✅          | ✅                   | ❌ (same-origin policy) | ✅ (top-frame)        |
 
 ## Security notes
 
@@ -138,13 +170,19 @@ Selectors are layered most-specific-first: `data-elements-stable-field-name` (St
 - Plain HTML form (test-fixtures/plain-form.html) — combined MM/YY
 - Plain HTML form — split MM/YY via `?split=1`
 - React 18 controlled form with `<select>` (test-fixtures/react-form.html)
+- Extension loaded unpacked in Chromium: Shadow DOM widget rendered, content script fills 10/10 fields on plain-form fixture
 
 Run any of them:
 ```sh
+# Node
 cd playwright
 node autofill.js --url "file://$PWD/../test-fixtures/plain-form.html" --profile test --submit
 node autofill.js --url "file://$PWD/../test-fixtures/plain-form.html?split=1" --profile test
 node autofill.js --url "file://$PWD/../test-fixtures/react-form.html" --profile test --submit --wait 2500
+
+# Python
+cd python && source .venv/bin/activate
+python autofill.py --url "file://$PWD/../test-fixtures/plain-form.html" --profile test --submit
 ```
 
 ## Layout
@@ -155,9 +193,10 @@ node autofill.js --url "file://$PWD/../test-fixtures/react-form.html" --profile 
 ├── profiles.json            your real data (gitignored)
 ├── core/autofill-engine.js  the shared engine
 ├── bookmarklet/             drag-to-bookmark install page generator
-├── extension/               Chrome/Edge MV3 extension
+├── extension/               Chrome/Edge MV3 extension (floating button, shortcuts, context menu)
 ├── userscript/              Tampermonkey single-file script
-├── playwright/              CLI + Node runtime
+├── playwright/              Node CLI + Playwright runtime
+├── python/                  Python CLI + Playwright runtime
 └── test-fixtures/           HTML files for smoke tests
 ```
 
@@ -170,6 +209,8 @@ This engine wouldn't work without the pattern discoveries baked into these proje
 - **[mozilla-mobile/firefox-ios](https://github.com/mozilla-mobile/firefox-ios)** — `LoginsHelper.js` — `input → change → blur` event sequence that triggers React Hook Form / Formik validation and touched state.
 - **[remix-project](https://github.com/remix-project-org/remix-project)** — e2e suite — `HTMLSelectElement.prototype` setter pattern (different from input).
 - **[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp)**, **[woocommerce-gateway-stripe](https://github.com/woocommerce/woocommerce-gateway-stripe)**, **[useautumn/autumn](https://github.com/useautumn/autumn)** — e2e test suites demonstrating `data-elements-stable-field-name` selectors for Stripe iframes.
+- **[bitwarden/clients](https://github.com/bitwarden/clients)** — `autofill-inline-menu-content.service.ts` — Shadow DOM floating UI pattern with `all: initial` host styles, randomized custom tag, MutationObserver throttle bailout, and `contextMenus` rebuild-on-change pattern.
+- **[gildas-lormeau/SingleFile](https://github.com/gildas-lormeau/SingleFile)** — element-based dedup pattern (`querySelector(TAGNAME)` instead of `window.__flag`) that survives SPA re-injection.
 - **[facebook/react#11488](https://github.com/facebook/react/issues/11488)** — the React issue thread that documents the synthetic-event + `_valueTracker` mechanism and why the native setter is required.
 - **Stripe** — for exposing `data-elements-stable-field-name` as a stable API on Elements inputs.
 
