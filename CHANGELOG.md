@@ -30,6 +30,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - [bitwarden/clients](https://github.com/bitwarden/clients) — Shadow DOM floating UI pattern, MutationObserver throttle, contextMenus rebuild pattern.
 - [gildas-lormeau/SingleFile](https://github.com/gildas-lormeau/SingleFile) — element-based dedup pattern.
 
+### Fixed — Stripe Checkout selector coverage
+- Added `autocomplete="billing <field>"`-prefixed selectors for country, line1/2, city, state, postalCode, email, phone. Stripe Checkout uses the "billing " prefix on `autocomplete` attributes which our v0.1.0 selectors missed.
+- Added `select[name="billingAdministrativeArea"]` for Stripe's province picker.
+- **Verified on live Stripe Checkout session** (user's own): 10/10 fields filled (email/phone correctly absent on that session), submit button clicked successfully — validator accepted all values.
+
 ### Verified
 - Python: 10 fields filled on plain-form fixture + 9 on React fixture with `useState` snapshot confirming React state updates.
 - Extension: floating widget renders on plain-form fixture; service worker starts; full fill pipeline (SW → content script → engine) fills 10/10 expected fields with DOM values matching profile exactly.
