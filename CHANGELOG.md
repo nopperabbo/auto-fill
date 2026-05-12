@@ -30,6 +30,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - [bitwarden/clients](https://github.com/bitwarden/clients) — Shadow DOM floating UI pattern, MutationObserver throttle, contextMenus rebuild pattern.
 - [gildas-lormeau/SingleFile](https://github.com/gildas-lormeau/SingleFile) — element-based dedup pattern.
 
+### Added — Profile generator + tutorial
+- **`python/gen-profiles.py`** — one-shot generator that populates `profiles.json` with 10 realistic US profiles using Faker, each paired with one of the 10 major Stripe public test cards (Visa, Mastercard, Amex, Discover, JCB, Diners Club, debit variants). Options: `--count`, `--seed`, `--out`, `--force`. Not a runtime randomizer — run once, edit output by hand thereafter.
+- **`USAGE.md`** — complete step-by-step tutorial for every delivery method (Playwright Node/Python, extension, userscript, bookmarklet) including troubleshooting section and field-mapping reference table.
+- `faker>=30.0,<40.0` added to `python/requirements.txt`.
+
 ### Fixed — Stripe Checkout selector coverage
 - Added `autocomplete="billing <field>"`-prefixed selectors for country, line1/2, city, state, postalCode, email, phone. Stripe Checkout uses the "billing " prefix on `autocomplete` attributes which our v0.1.0 selectors missed.
 - Added `select[name="billingAdministrativeArea"]` for Stripe's province picker.

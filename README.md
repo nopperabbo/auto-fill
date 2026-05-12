@@ -13,7 +13,18 @@ cp profiles.example.json profiles.json
 # Edit profiles.json with your real card and billing info
 ```
 
+Or generate 10 realistic US profiles in one shot:
+
+```sh
+cd python
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python gen-profiles.py --out ../profiles.json
+```
+
 `profiles.json` is `.gitignore`d — never commit real card data.
+
+**Full install + usage tutorial per method: see [USAGE.md](USAGE.md).**
 
 ## Profile shape
 
