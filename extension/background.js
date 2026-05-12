@@ -1,25 +1,43 @@
 'use strict';
 
-const DEFAULT_PROFILES = {
+const DEFAULT_PROFILES_URL = chrome.runtime.getURL('default-profiles.json');
+
+const FALLBACK_PROFILES = {
   defaultProfile: 'test',
   profiles: {
     test: {
-      label: 'Stripe Test Card',
+      label: 'Stripe Test Card — US',
       card: { number: '4242 4242 4242 4242', expMonth: '12', expYear: '34', cvc: '123', holder: 'John Doe' },
       billing: {
         email: 'john.doe@example.com', phone: '+1 555 0100',
-        country: 'ID', countryName: 'Indonesia',
+        country: 'US', countryName: 'United States',
         line1: '123 Example Street', line2: 'Unit 42',
-        city: 'Jakarta', state: 'DKI Jakarta', stateCode: 'JK',
-        postalCode: '12190'
+        city: 'New York', state: 'New York', stateCode: 'NY',
+        postalCode: '10001'
       }
     }
   }
 };
 
+async function loadBundledDefaults() {
+  try {
+    const resp = await fetch(DEFAULT_PROFILES_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!data || !data.profiles || typeof data.profiles !== 'object') {
+      throw new Error('malformed default-profiles.json');
+    }
+    return data;
+  } catch (e) {
+    console.warn('[auto-fill] bundled defaults unavailable, using inline fallback:', e);
+    return FALLBACK_PROFILES;
+  }
+}
+
 async function getProfiles() {
   const { profiles } = await chrome.storage.local.get('profiles');
-  return profiles || DEFAULT_PROFILES;
+  if (profiles && profiles.profiles && Object.keys(profiles.profiles).length) return profiles;
+  return await loadBundledDefaults();
 }
 
 // Escape "&" in menu titles because some OSes interpret it as accelerator marker.
@@ -103,13 +121,42 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 // ─── Lifecycle: seed defaults, build menu, rebuild on profile changes ───────
-chrome.runtime.onInstalled.addListener(async () => {
+function _isLegacyIndonesiaStore(store) {
+  if (!store || !store.profiles) return false;
+  for (const key of Object.keys(store.profiles)) {
+    const b = store.profiles[key] && store.profiles[key].billing;
+    if (b && (b.country === 'ID' || b.countryName === 'Indonesia')) return true;
+  }
+  return false;
+}
+
+async function seedOrMigrate({ force = false } = {}) {
   const existing = await chrome.storage.local.get('profiles');
-  if (!existing.profiles) await chrome.storage.local.set({ profiles: DEFAULT_PROFILES });
+  const has = existing.profiles && existing.profiles.profiles && Object.keys(existing.profiles.profiles).length;
+
+  if (!has) {
+    const bundled = await loadBundledDefaults();
+    await chrome.storage.local.set({ profiles: bundled });
+    return { seeded: true, count: Object.keys(bundled.profiles).length };
+  }
+
+  if (force || _isLegacyIndonesiaStore(existing.profiles)) {
+    const bundled = await loadBundledDefaults();
+    await chrome.storage.local.set({ profiles: bundled });
+    return { migrated: true, count: Object.keys(bundled.profiles).length };
+  }
+
+  return { kept: true, count: Object.keys(existing.profiles.profiles).length };
+}
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+  const result = await seedOrMigrate({ force: false });
+  console.log('[auto-fill] onInstalled', details.reason, result);
   await rebuildContextMenu();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  await seedOrMigrate({ force: false });
   await rebuildContextMenu();
 });
 

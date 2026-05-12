@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Auto Fill — Payment Forms",
-  "version": "0.2.0",
-  "description": "One-click autofill for Stripe Elements, Checkout, and plain payment forms. Floating button + keyboard shortcut + right-click menu.",
+  "version": "0.3.0",
+  "description": "One-click autofill for Stripe Elements, Checkout, and plain payment forms. Ships 100 US billing profiles with Stripe test cards.",
   "permissions": [
     "storage",
     "activeTab",
