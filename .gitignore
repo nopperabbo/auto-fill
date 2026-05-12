@@ -1,0 +1,37 @@
+# Sensitive — never commit real data
+profiles.json
+*.key
+*.pem
+*.crx
+.env
+.env.*
+
+# Node
+node_modules/
+yarn.lock
+
+# Generated build artifacts
+dist/
+bookmarklet/dist/
+bookmarklet/*.min.js
+extension/dist/
+extension/*.zip
+*.log
+
+# Playwright
+playwright-report/
+test-results/
+.playwright/
+playwright/.auth/
+
+# Tool metadata
+.opencode-jce/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp

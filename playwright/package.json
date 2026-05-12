@@ -1,0 +1,17 @@
+{
+  "name": "autofill-playwright",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright-based autofill CLI for payment forms (Stripe + plain).",
+  "type": "commonjs",
+  "bin": {
+    "autofill": "./autofill.js"
+  },
+  "scripts": {
+    "start": "node autofill.js",
+    "test": "node autofill.js --url file://$PWD/../test-fixtures/plain-form.html --profile test --headful"
+  },
+  "dependencies": {
+    "playwright": "1.55.1"
+  }
+}

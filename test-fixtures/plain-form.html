@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plain Payment Form — Test Fixture</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 560px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.25rem; }
+  fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  legend { font-weight: 600; padding: 0 .5rem; }
+  label { display: block; font-size: .85rem; margin-top: .5rem; color: #333; }
+  input, select { width: 100%; padding: .5rem .6rem; font-size: 1rem; border: 1px solid #bbb; border-radius: 6px; box-sizing: border-box; margin-top: .25rem; }
+  .row { display: flex; gap: .5rem; }
+  .row > * { flex: 1; }
+  button { margin-top: 1rem; padding: .7rem 1.2rem; background: #635bff; color: #fff; border: 0; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+  #out { margin-top: 1rem; font-family: monospace; background: #f6f6f6; padding: .75rem; border-radius: 6px; white-space: pre-wrap; word-break: break-all; display: none; }
+  #out.show { display: block; }
+</style>
+</head>
+<body>
+<h1>Plain Payment Form — Test Fixture</h1>
+<p>Loads without network. Used to smoke-test the autofill engine without Stripe iframes.</p>
+
+<form id="pay">
+  <fieldset>
+    <legend>Card</legend>
+    <label>Card number
+      <input name="cardnumber" autocomplete="cc-number" placeholder="1234 1234 1234 1234" inputmode="numeric" required>
+    </label>
+    <div class="row">
+      <label>MM / YY
+        <input name="cc-exp" autocomplete="cc-exp" placeholder="MM / YY" inputmode="numeric" required>
+      </label>
+      <label>CVC
+        <input name="cvc" autocomplete="cc-csc" placeholder="CVC" inputmode="numeric" required>
+      </label>
+    </div>
+    <label>Cardholder name
+      <input name="ccname" autocomplete="cc-name" placeholder="Full name on card" required>
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Billing address</legend>
+    <label>Country
+      <select name="country" autocomplete="country" required>
+        <option value="">Select…</option>
+        <option value="ID">Indonesia</option>
+        <option value="US">United States</option>
+        <option value="SG">Singapore</option>
+        <option value="MY">Malaysia</option>
+      </select>
+    </label>
+    <label>Address line 1
+      <input name="address-line1" autocomplete="address-line1" required>
+    </label>
+    <label>Address line 2
+      <input name="address-line2" autocomplete="address-line2">
+    </label>
+    <div class="row">
+      <label>City
+        <input name="city" autocomplete="address-level2" required>
+      </label>
+      <label>Province
+        <input name="state" autocomplete="address-level1" required>
+      </label>
+    </div>
+    <label>Postal code
+      <input name="postal" autocomplete="postal-code" required>
+    </label>
+  </fieldset>
+
+  <button type="submit">Pay</button>
+</form>
+
+<div id="out"></div>
+
+<script>
+  // Also test split expiry variant — toggle with ?split=1
+  if (new URLSearchParams(location.search).get('split') === '1') {
+    const row = document.querySelector('.row');
+    row.innerHTML = `
+      <label>Exp month
+        <input name="cc-exp-month" autocomplete="cc-exp-month" placeholder="MM" inputmode="numeric" required>
+      </label>
+      <label>Exp year
+        <input name="cc-exp-year" autocomplete="cc-exp-year" placeholder="YY" inputmode="numeric" required>
+      </label>
+      <label>CVC
+        <input name="cvc" autocomplete="cc-csc" placeholder="CVC" inputmode="numeric" required>
+      </label>
+    `;
+  }
+
+  document.getElementById('pay').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const out = document.getElementById('out');
+    out.textContent = 'Submitted:\n' + JSON.stringify(data, null, 2);
+    out.classList.add('show');
+    document.title = 'Submitted ✓';
+  });
+</script>
+</body>
+</html>

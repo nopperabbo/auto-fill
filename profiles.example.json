@@ -1,0 +1,49 @@
+{
+  "defaultProfile": "test",
+  "profiles": {
+    "test": {
+      "label": "Stripe Test Card",
+      "card": {
+        "number": "4242 4242 4242 4242",
+        "expMonth": "12",
+        "expYear": "34",
+        "cvc": "123",
+        "holder": "John Doe"
+      },
+      "billing": {
+        "email": "john.doe@example.com",
+        "phone": "+1 555 0100",
+        "country": "ID",
+        "countryName": "Indonesia",
+        "line1": "123 Example Street",
+        "line2": "Unit 42",
+        "city": "Jakarta",
+        "state": "DKI Jakarta",
+        "stateCode": "JK",
+        "postalCode": "12190"
+      }
+    },
+    "personal": {
+      "label": "Your Real Card — EDIT THIS",
+      "card": {
+        "number": "4111 1111 1111 1111",
+        "expMonth": "08",
+        "expYear": "29",
+        "cvc": "000",
+        "holder": "CHANGE ME"
+      },
+      "billing": {
+        "email": "you@example.com",
+        "phone": "+1 555 0199",
+        "country": "ID",
+        "countryName": "Indonesia",
+        "line1": "Your street address",
+        "line2": "",
+        "city": "Jakarta",
+        "state": "DKI Jakarta",
+        "stateCode": "JK",
+        "postalCode": "00000"
+      }
+    }
+  }
+}
