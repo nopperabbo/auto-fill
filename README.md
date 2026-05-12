@@ -24,7 +24,8 @@ python gen-profiles.py --out ../profiles.json
 
 `profiles.json` is `.gitignore`d — never commit real card data.
 
-**Full install + usage tutorial per method: see [USAGE.md](USAGE.md).**
+**📘 Tutorial lengkap (Bahasa Indonesia, step-by-step): [TUTORIAL.md](TUTORIAL.md)**
+**📗 English quick reference: [USAGE.md](USAGE.md)**
 
 ## Profile shape
 
