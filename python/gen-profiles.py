@@ -95,13 +95,14 @@ def main() -> None:
         description="One-shot generator for profiles.example.json (US entries + Stripe test cards).",
     )
     parser.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "profiles.example.json"))
-    parser.add_argument("--count", type=int, default=10, help="Number of profiles to generate (default: 10, max: 10)")
+    parser.add_argument("--count", type=int, default=10,
+                        help="Number of profiles to generate (1-100). Cards cycle through the 10 Stripe test cards.")
     parser.add_argument("--seed", type=int, default=None, help="Optional Faker seed for reproducible output")
     parser.add_argument("--force", action="store_true", help="Overwrite output file if it exists")
     args = parser.parse_args()
 
-    if args.count < 1 or args.count > len(STRIPE_TEST_CARDS):
-        sys.exit(f"--count must be between 1 and {len(STRIPE_TEST_CARDS)}")
+    if args.count < 1 or args.count > 100:
+        sys.exit("--count must be between 1 and 100")
 
     out = Path(args.out)
     if out.exists() and not args.force:
@@ -113,21 +114,26 @@ def main() -> None:
         Faker.seed(args.seed)
 
     profiles: dict[str, dict] = {}
-    for i, card in enumerate(STRIPE_TEST_CARDS[: args.count], start=1):
-        key = f"us_{i:02d}"
+    pad = max(2, len(str(args.count)))
+    for i in range(1, args.count + 1):
+        card = STRIPE_TEST_CARDS[(i - 1) % len(STRIPE_TEST_CARDS)]
+        key = f"us_{i:0{pad}d}"
         key, profile = build_profile(key, fake, card)
         profiles[key] = profile
 
     output = {
-        "defaultProfile": "us_01",
+        "defaultProfile": next(iter(profiles)),
         "profiles": profiles,
     }
 
     out.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {len(profiles)} US profiles to {out}")
-    print(f"Preview (first profile):")
-    preview = next(iter(profiles.values()))
-    print(json.dumps(preview, indent=2))
+    print(f"Wrote {len(profiles)} US profile(s) to {out}")
+    if len(profiles) <= 3:
+        print("Preview:")
+        print(json.dumps(next(iter(profiles.values())), indent=2))
+    else:
+        keys = list(profiles.keys())
+        print(f"Keys: {keys[0]}..{keys[-1]} (default: {output['defaultProfile']})")
 
 
 if __name__ == "__main__":

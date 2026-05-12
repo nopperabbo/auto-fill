@@ -13,6 +13,21 @@ cd auto-fill
 ./autofill https://your-site.test/checkout --submit # fill + submit, done
 ```
 
+Batch mode (one identity per run, sequential):
+
+```sh
+./autofill <url> --profiles us_01,us_02,us_03 --submit   # specific list
+./autofill <url> --count 10 --submit                     # first 10 profiles
+./autofill <url> --all --submit                          # every profile in profiles.json
+```
+
+Generate more identities (up to 100):
+
+```sh
+cd python && source .venv/bin/activate
+python gen-profiles.py --count 50 --force --out ../profiles.json
+```
+
 `setup.sh` handles Python venv, Node deps, Playwright Chromium, and generates 10 US profiles with Stripe test cards. `autofill` wrapper auto-picks Node or Python backend.
 
 ## Other install methods

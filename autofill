@@ -1,45 +1,192 @@
 #!/usr/bin/env bash
-# autofill — zero-friction runner. Usage: ./autofill <url> [flags]
+# autofill — zero-friction runner with batch support.
 #
-# Auto-detects installed CLI (Node preferred, Python fallback). First run hints
-# to run ./setup.sh if deps are missing.
+# Single run:
+#   ./autofill <url>                                # default profile
+#   ./autofill <url> --profile us_05 --submit
+#
+# Batch runs (one identity per run, sequential):
+#   ./autofill <url> --profiles us_01,us_02,us_03   # specific list
+#   ./autofill <url> --count 5                      # first 5 profiles
+#   ./autofill <url> --all                          # all profiles in profiles.json
 
 set -euo pipefail
 
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
 
-if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+usage() {
   cat <<USAGE
 autofill — fill payment forms with one command
 
-Usage:
-  ./autofill <url> [--profile <key>] [--submit] [--headful] [--wait <ms>] [--channel chrome]
+Single run:
+  ./autofill <url> [--profile <key>] [--submit] [--headful] [--wait <ms>]
 
-Examples:
-  ./autofill https://example.com/checkout
-  ./autofill https://example.com/checkout --submit
-  ./autofill https://example.com/checkout --profile us_05 --headful
+Batch (one identity per iteration):
+  ./autofill <url> --profiles us_01,us_02,us_03 [--submit]
+  ./autofill <url> --count 10 [--submit]
+  ./autofill <url> --all [--submit]
+
+Flags:
+  --profile <key>       Single profile key (default: profiles.json defaultProfile)
+  --profiles a,b,c      Comma-separated list. Runs sequentially, one per identity
+  --count N             Run against first N profiles from profiles.json
+  --all                 Run against every profile in profiles.json
+  --submit              Click submit after filling
+  --headful, --headed   Show the browser window
+  --wait <ms>           Delay after page load before filling (default 3000)
+  --channel chrome      Use installed Chrome instead of bundled Chromium
+  --sleep <sec>         Sleep between batch runs (default 2)
+  -h, --help            Show this help
 
 First time? Run: ./setup.sh
 USAGE
-  exit 0
+}
+
+if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  usage; exit 0
 fi
 
-# Check setup ran
 if [ ! -f profiles.json ]; then
   echo "✗ profiles.json not found. Run: ./setup.sh" >&2
   exit 1
 fi
 
-# Prefer Node CLI (matches the one the test fixtures were verified on).
-# Fall back to Python if Node isn't available.
+# Parse URL (first positional), separate batch flags from passthrough flags.
+URL=""
+BATCH_MODE=""
+BATCH_LIST=""
+BATCH_COUNT=""
+SLEEP_BETWEEN=2
+PASS_THROUGH=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --profiles)  BATCH_MODE="list";  BATCH_LIST="$2"; shift 2 ;;
+    --count)     BATCH_MODE="count"; BATCH_COUNT="$2"; shift 2 ;;
+    --all)       BATCH_MODE="all"; shift ;;
+    --sleep)     SLEEP_BETWEEN="$2"; shift 2 ;;
+    -h|--help)   usage; exit 0 ;;
+    --*)         PASS_THROUGH+=("$1" "${2:-}"); [ "${2:-}" != "" ] && shift 2 || shift ;;
+    *)           if [ -z "$URL" ]; then URL="$1"; else PASS_THROUGH+=("$1"); fi; shift ;;
+  esac
+done
+
+# Some flags are boolean (--submit, --headful). The --*) branch above eats an
+# extra arg when it's not boolean. Rebuild PASS_THROUGH with proper boolean handling.
+FIXED_PASS=()
+i=0
+while [ $i -lt ${#PASS_THROUGH[@]} ]; do
+  arg="${PASS_THROUGH[$i]}"
+  next="${PASS_THROUGH[$((i+1))]:-}"
+  case "$arg" in
+    --submit|--headful|--headed)
+      FIXED_PASS+=("$arg")
+      i=$((i+1))
+      ;;
+    --profile|--wait|--channel|--url)
+      FIXED_PASS+=("$arg" "$next")
+      i=$((i+2))
+      ;;
+    "") i=$((i+1)) ;;
+    *)  FIXED_PASS+=("$arg"); i=$((i+1)) ;;
+  esac
+done
+PASS_THROUGH=("${FIXED_PASS[@]}")
+
+if [ -z "$URL" ]; then
+  echo "✗ Missing <url>" >&2
+  usage
+  exit 1
+fi
+
+# Detect backend: prefer Node CLI, fallback to Python venv.
+run_once() {
+  local profile_key="$1"
+  shift
+  if command -v node >/dev/null 2>&1 && [ -d "$ROOT/playwright/node_modules" ]; then
+    node "$ROOT/playwright/autofill.js" --url "$URL" --profile "$profile_key" "$@"
+  elif [ -d "$ROOT/python/.venv" ]; then
+    # shellcheck disable=SC1091
+    source "$ROOT/python/.venv/bin/activate"
+    python "$ROOT/python/autofill.py" --url "$URL" --profile "$profile_key" "$@"
+    deactivate 2>/dev/null || true
+  else
+    echo "✗ No CLI ready. Run: ./setup.sh" >&2
+    exit 1
+  fi
+}
+
+# Resolve batch profiles list.
+PROFILES=()
+if [ -n "$BATCH_MODE" ]; then
+  case "$BATCH_MODE" in
+    list)
+      IFS=',' read -r -a PROFILES <<< "$BATCH_LIST"
+      ;;
+    count)
+      while IFS= read -r line; do PROFILES+=("$line"); done < <(
+        python3 -c "
+import json, sys
+store = json.load(open('$ROOT/profiles.json'))
+keys = list(store['profiles'].keys())[:$BATCH_COUNT]
+print('\n'.join(keys))
+"
+      )
+      ;;
+    all)
+      while IFS= read -r line; do PROFILES+=("$line"); done < <(
+        python3 -c "
+import json
+store = json.load(open('$ROOT/profiles.json'))
+print('\n'.join(store['profiles'].keys()))
+"
+      )
+      ;;
+  esac
+
+  if [ ${#PROFILES[@]} -eq 0 ]; then
+    echo "✗ Batch mode yielded no profiles (check profiles.json or --count/--profiles value)" >&2
+    exit 1
+  fi
+
+  echo "▶ Batch run: ${#PROFILES[@]} profile(s) against $URL"
+  printf '  %s\n' "${PROFILES[@]}"
+  echo
+
+  SUCCESS=0
+  FAILED=()
+  for idx in "${!PROFILES[@]}"; do
+    P="${PROFILES[$idx]}"
+    N=$((idx + 1))
+    echo "━━━ [$N/${#PROFILES[@]}] $P ━━━"
+    if run_once "$P" "${PASS_THROUGH[@]}"; then
+      SUCCESS=$((SUCCESS + 1))
+    else
+      FAILED+=("$P")
+    fi
+    if [ $N -lt ${#PROFILES[@]} ]; then
+      sleep "$SLEEP_BETWEEN"
+    fi
+  done
+
+  echo
+  echo "━━━ Batch summary ━━━"
+  echo "  ok:     $SUCCESS / ${#PROFILES[@]}"
+  if [ ${#FAILED[@]} -gt 0 ]; then
+    echo "  failed: ${FAILED[*]}"
+    exit 1
+  fi
+  exit 0
+fi
+
+# Single-run fallthrough: just delegate to backend once.
 if command -v node >/dev/null 2>&1 && [ -d "$ROOT/playwright/node_modules" ]; then
-  exec node "$ROOT/playwright/autofill.js" --url "$@"
+  exec node "$ROOT/playwright/autofill.js" --url "$URL" "${PASS_THROUGH[@]}"
 elif [ -d "$ROOT/python/.venv" ]; then
   # shellcheck disable=SC1091
   source "$ROOT/python/.venv/bin/activate"
-  exec python "$ROOT/python/autofill.py" --url "$@"
+  exec python "$ROOT/python/autofill.py" --url "$URL" "${PASS_THROUGH[@]}"
 else
   echo "✗ No CLI ready. Run: ./setup.sh" >&2
   exit 1

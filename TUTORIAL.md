@@ -363,31 +363,111 @@ Full list selector ada di `core/autofill-engine.js` di bawah object `SELECTORS`.
 
 ---
 
-## Step 6 — Multi-profile workflow
+## Step 6 — Multi-identity workflow (batch mode)
 
-Contoh case: lu punya banyak US profile dengan kartu berbeda-beda buat stress-test checkout lu.
+Kalau lu mau run **satu URL dengan banyak identity berbeda berturut-turut** (fokus US misalnya), pake batch mode di `./autofill`. Tiap iterasi pake profile berbeda dari `profiles.json`.
 
-### Generate dengan profile berbeda
+### 6A — Generate banyak profile sekali
 
 ```sh
-# Set A untuk US test comprehensive
-python gen-profiles.py --count 10 --seed 1 --out ../profiles-us.json
+cd python && source .venv/bin/activate
 
-# Set kecil buat quick smoke test
+# Generate 50 US profile (cards cycle through 10 Stripe test cards, identity semua unique)
+python gen-profiles.py --count 50 --force --out ../profiles.json
+
+# Atau 100
+python gen-profiles.py --count 100 --force --out ../profiles.json
+```
+
+Setiap profile punya nama, email, alamat, state + ZIP yang berbeda dan unique. Stripe test card cycle tiap 10 (us_01 = Visa, us_02 = Visa debit, ... us_11 = Visa lagi, dst).
+
+### 6B — Batch run — tiga cara
+
+**Cara 1: Specific list**
+```sh
+./autofill https://your-site.test/checkout --profiles us_01,us_05,us_10 --submit
+```
+Run 3 kali pake 3 identity yang lu sebutin.
+
+**Cara 2: First N profiles**
+```sh
+./autofill https://your-site.test/checkout --count 5 --submit
+```
+Run 5 kali pake `us_01`..`us_05`.
+
+**Cara 3: Semua profile**
+```sh
+./autofill https://your-site.test/checkout --all --submit
+```
+Run setiap profile di `profiles.json`.
+
+### 6C — Control timing
+
+```sh
+# Default sleep 2 detik antar run. Kecilin kalau mau cepet:
+./autofill <url> --all --sleep 0.5 --submit
+
+# Atau lebih lama kalau server lu rate-limit:
+./autofill <url> --all --sleep 10 --submit
+```
+
+### 6D — Contoh output batch
+
+```
+▶ Batch run: 5 profile(s) against https://your-site.test/checkout
+  us_01
+  us_02
+  us_03
+  us_04
+  us_05
+
+━━━ [1/5] us_01 ━━━
+[autofill] profile="us_01" submit=true url=...
+    filled: cardNumber, cardHolder, cardCvc, cardExpiry, country, line1, city, state, postalCode
+    missed: email, phone, line2
+[autofill] submit: clicked
+━━━ [2/5] us_02 ━━━
+...
+
+━━━ Batch summary ━━━
+  ok:     5 / 5
+```
+
+Kalau ada profile yang fail (network error, selector miss, etc), summary-nya akan kelihatan:
+
+```
+━━━ Batch summary ━━━
+  ok:     3 / 5
+  failed: us_02 us_04
+```
+
+### 6E — Kombinasi workflow
+
+Common pattern:
+
+```sh
+# Step 1: generate 20 US identity fresh
+python/gen-profiles.py --count 20 --force --out profiles.json
+
+# Step 2: run all 20 against your checkout with auto-submit
+./autofill https://your-site.test/checkout --all --submit --sleep 3
+
+# Step 3: review summary, check mana yang fail
+```
+
+### 6F — Multi-file workflow (advanced)
+
+Kalau lu mau punya multiple "set" buat testing yang berbeda:
+
+```sh
+# Set A untuk US test
+python gen-profiles.py --count 20 --seed 1 --out ../profiles-us.json
+
+# Set B untuk smoke test kecil
 python gen-profiles.py --count 3 --seed 2 --out ../profiles-smoke.json
 ```
 
-Default file yang dibaca engine adalah `profiles.json`. Kalau mau pake file lain, rename jadi `profiles.json` atau edit path di masing-masing delivery method (`playwright/autofill.js` baris 18, `python/autofill.py` baris 20).
-
-### Swap profile via CLI
-
-```sh
-node autofill.js --url https://... --profile us_01 --submit
-node autofill.js --url https://... --profile us_05 --submit
-node autofill.js --url https://... --profile us_10 --submit
-```
-
-Setiap run pake kartu test + identity yang berbeda, verifikasi engine lu robust di berbagai skenario.
+Default `./autofill` baca `profiles.json`. Untuk pake file lain: rename ke `profiles.json`, atau edit path di `playwright/autofill.js` baris 18 / `python/autofill.py` baris 20.
 
 ---
 

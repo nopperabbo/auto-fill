@@ -3,6 +3,18 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Added — Batch mode + bigger profile library
+- **Batch runs via `./autofill`**:
+  - `--profiles us_01,us_02,us_03` — specific comma-separated list
+  - `--count N` — first N profiles from `profiles.json`
+  - `--all` — every profile in `profiles.json`
+  - `--sleep <sec>` — delay between iterations (default 2)
+  - Shows per-iteration header, final summary with ok / failed count.
+- **`gen-profiles.py --count` now accepts 1–100** (was 1–10). Cards cycle through the 10 Stripe test card set; identity data stays unique per profile.
+- Key padding adjusts to count: `us_01..us_10` for ≤99, `us_001..us_100` for 100.
+
 ## [0.2.0] — 2026-05-12
 
 ### Added — Python CLI
